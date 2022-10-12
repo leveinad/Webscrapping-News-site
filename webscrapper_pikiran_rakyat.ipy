@@ -1,0 +1,58 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Oct 12 17:03:58 2022
+
+@author: Daniel Hokinson
+"""
+
+try:
+    import requests
+except ModuleNotFoundError:
+    !pip install requests
+    print("requests has been installed")
+    import requests
+try:
+    from bs4 import BeautifulSoup
+except ModuleNotFoundError:
+    !pip install beautifulsoup4
+    print("BeautifulSoup has been installed")
+    from bs4 import BeautifulSoup
+try:
+    import pandas as pd
+except ModuleNotFoundError:
+    !pip install pandas
+    print("BeautifulSoup has been installed")
+    import pandas as pd
+try:
+    from newspaper import Article
+except ModuleNotFoundError:
+    !pip3 install newspaper3k
+    print("BeautifulSoup has been installed")
+    from newspaper import Article
+
+request1=requests.get("https://www.pikiran-rakyat.com/")
+coverpage=request1.content
+soup1 = BeautifulSoup(coverpage, 'html5lib')
+terpopuler_news = soup1.find_all('div', class_='most__right')
+berita_terpopuler = {"link_berita":[] , "judul_berita":[] , "konten_berita":[]}
+for i in enumerate(terpopuler_news):
+    link = terpopuler_news[i[0]].find('a')['href']
+    berita_terpopuler["link_berita"].append(link)
+    title = terpopuler_news[i[0]].find('a').get_text()
+    berita_terpopuler["judul_berita"].append(title)
+    article = requests.get(link)
+    article_content = article.content
+    soup_article = BeautifulSoup(article_content, 'html5lib')
+    pages = soup_article.find_all('div', class_='paging__item')
+    konten=""
+    n = 1
+    while n <= len(pages):
+        page = Article(link+"?page="+str(n))
+        page.download()
+        page.parse()
+        newpage = page.text
+        konten = konten + "\n\n" + newpage
+        n += 1
+    berita_terpopuler["konten_berita"].append(konten)
+df = pd.DataFrame(berita_terpopuler, columns = ['judul_berita', 'konten_berita'])
+df.to_json("berita_terpopuler.json")
